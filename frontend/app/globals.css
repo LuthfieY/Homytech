@@ -1,0 +1,363 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 220 30% 96%;
+    --foreground: 0 0% 25%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 25%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 25%;
+
+    --primary: 216 50% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 196 40% 39%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 0 0% 93%;
+    --muted-foreground: 0 0% 60%;
+
+    --accent: 120 20% 65%;
+    --accent-foreground: 0 0% 25%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 216 50% 60%;
+
+    --radius: 1rem;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-solid-background text-solid-text;
+    background-image: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%235887DA' fill-opacity='0.05' fill-rule='evenodd'/%3E%3C/svg%3E");
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-medium;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-solid-muted rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background-color: #4c7380;
+    @apply rounded-full transition-colors;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background-color: #3a5a64;
+  }
+}
+
+/* Card hover effect */
+.card-hover {
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+}
+
+/* Sidebar hover effect */
+.hover\:sidebar-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 15px 35px -5px rgba(0, 0, 0, 0.3), 0 8px 20px -5px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+/* Animated switch */
+.switch-animation .switch-thumb {
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Custom animations */
+@keyframes gentle-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.animate-gentle-pulse {
+  animation: gentle-pulse 2s infinite ease-in-out;
+}
+
+/* Sidebar animations */
+@keyframes slide-in {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-out {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+}
+
+/* Improved sidebar transition */
+.sidebar-transition {
+  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform, opacity;
+}
+
+.sidebar-slide-in {
+  animation: slide-in 0.3s ease-out forwards;
+}
+
+.sidebar-slide-out {
+  animation: slide-out 0.3s ease-in forwards;
+}
+
+/* Weather icon animations */
+.weather-sun {
+  animation: rotate 20s linear infinite;
+}
+
+.weather-cloud {
+  animation: float 8s ease-in-out infinite;
+}
+
+.weather-rain {
+  animation: bounce 2s ease-in-out infinite;
+}
+
+.weather-fog {
+  animation: fog-move 6s ease-in-out infinite;
+  opacity: 0.85;
+}
+
+.weather-snow {
+  animation: snow-fall 2.5s linear infinite;
+}
+
+.weather-thunder {
+  animation: bounce 1s ease-in-out infinite;
+}
+
+@keyframes rotate {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes float {
+  0% {
+    transform: translateY(0px);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+  100% {
+    transform: translateY(0px);
+  }
+}
+
+@keyframes bounce {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes fog-move {
+  0% {
+    filter: blur(0.5px);
+    transform: translateX(0);
+  }
+  50% {
+    filter: blur(2px);
+    transform: translateX(8px);
+  }
+  100% {
+    filter: blur(0.5px);
+    transform: translateX(0);
+  }
+}
+
+@keyframes snow-fall {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(10px) scale(1.1);
+    opacity: 0.7;
+  }
+}
+
+@keyframes thunder-flash {
+  0% {
+    filter: brightness(1);
+  }
+  40% {
+    filter: brightness(2.5);
+  }
+  50% {
+    filter: brightness(1);
+  }
+  100% {
+    filter: brightness(1);
+  }
+}
+
+/* Consistent rounded corners */
+.card {
+  @apply rounded-xl overflow-hidden;
+}
+
+.card-header {
+  @apply rounded-t-xl;
+}
+
+.card-footer {
+  @apply rounded-b-xl;
+}
+
+/* Floating components with rounded corners */
+.floating-component {
+  border-radius: 1rem;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: box-shadow 0.3s ease;
+}
+
+.floating-component:hover {
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+/* Ensure content has proper spacing when sidebar is floating */
+@media (min-width: 1024px) {
+  .content-with-floating-sidebar {
+    margin-left: 1rem;
+  }
+}
+
+/* Responsive adjustments for rounded corners */
+@media (max-width: 640px) {
+  header,
+  aside {
+    border-radius: 1rem !important;
+    margin: 0.5rem !important;
+  }
+
+  aside {
+    height: calc(100vh - 1rem) !important;
+  }
+
+  .card {
+    @apply rounded-lg;
+  }
+
+  .card-header {
+    @apply rounded-t-lg;
+  }
+
+  .card-footer {
+    @apply rounded-b-lg;
+  }
+}
+
+/* Fix for sidebar on mobile */
+@media (max-width: 1023px) {
+  .sidebar-hidden {
+    transform: translateX(-100%) !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+  }
+}
+
+/* Tab content animations */
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeOutLeft {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+}
+
+.tab-content-enter {
+  animation: fadeInRight 0.3s forwards;
+}
+
+.tab-content-exit {
+  animation: fadeOutLeft 0.3s forwards;
+}
+
+/* Override default TabsTrigger active state styling */
+[data-state="active"].tabs-trigger {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Ensure no background on active tab */
+[role="tablist"] [data-state="active"] {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}

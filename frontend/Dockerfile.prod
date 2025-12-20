@@ -1,0 +1,27 @@
+# ===========================
+# 1️⃣ Build Stage
+# ===========================
+FROM node:18-alpine AS builder
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+RUN npm run build
+
+# ===========================
+# 2️⃣ Runner Stage
+# ===========================
+FROM node:18-alpine AS runner
+WORKDIR /app
+
+# Copy standalone build output
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+# Optional: config or env files
+COPY --from=builder /app/next.config.mjs ./next.config.mjs
+
+EXPOSE 3000
+CMD ["node", "server.js"]

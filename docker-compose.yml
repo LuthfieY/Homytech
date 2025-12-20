@@ -1,0 +1,92 @@
+services:
+  mosquitto:
+    build:
+      context: ./mosquitto
+      dockerfile: Dockerfile.prod
+    image: vii4442/homytech-mosquitto:latest
+    container_name: homytech-mosquitto
+    restart: unless-stopped
+    ports:
+      - "1883:1883"
+    networks:
+      - homytech-net
+    healthcheck:
+      test: ["CMD", "sh", "-c", "mosquitto_pub -h localhost -t 'healthcheck' -m 'alive' -u ${MQTT_USERNAME} -P ${MQTT_PASSWORD}"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb
+    restart: unless-stopped
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGO_INITDB_ROOT_PASSWORD}
+      - MONGO_INITDB_DATABASE=${MONGO_INITDB_DATABASE}
+    volumes:
+      - ./mongodb/data:/data/db
+      - ./mongodb/mongod.conf:/etc/mongod.conf:ro
+    command: ["mongod", "--config", "/etc/mongod.conf"]
+    networks:
+      - homytech-net
+    ports:
+      - "27017:27017"
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.prod
+    image: vii4442/homytech-backend:latest
+    container_name: homytech-backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      mosquitto:
+        condition: service_healthy
+      mongodb:
+        condition: service_started
+    environment:
+      - MQTT_HOST=homytech-mosquitto
+      - MQTT_PORT=1883
+      - MQTT_USERNAME=${MQTT_USERNAME}
+      - MQTT_PASSWORD=${MQTT_PASSWORD}
+      - MONGODB_URI=${MONGODB_URI}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - JWT_ALGORITHM=${JWT_ALGORITHM}
+    networks:
+      - homytech-net
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    image: vii4442/homytech-frontend:latest
+    container_name: homytech-frontend
+    environment:
+      - NODE_ENV=production
+    networks:
+      - homytech-net
+    restart: unless-stopped
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile.prod
+    image: vii4442/homytech-nginx:latest
+    container_name: homytech-nginx
+    ports:
+      - "80:80"
+    depends_on:
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_started
+    networks:
+      - homytech-net
+    restart: unless-stopped
+
+networks:
+  homytech-net:
+    driver: bridge
