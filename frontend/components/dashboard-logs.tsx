@@ -8,6 +8,7 @@ import { LightLog as LightLogComponent } from "@/components/light-log"
 import { LightUsageChart } from "@/components/light-usage-chart"
 import { DoorOpen, Shirt, Lightbulb, BarChart3 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useAuth } from "@/contexts/auth-context"
 
 const LOGS_PER_PAGE = 10
 
@@ -53,6 +54,7 @@ interface RawLightUsage {
 }
 
 export function DashboardLogs() {
+  const { token } = useAuth()
   const [doorLogs, setDoorLogs] = useState<LogEntry[]>([])
   const [doorTotal, setDoorTotal] = useState(0)
   const [doorPage, setDoorPage] = useState(1)
@@ -80,8 +82,9 @@ export function DashboardLogs() {
 
   // Fetch Door Logs
   useEffect(() => {
+    if (!token) return
     const url = `/api/logs/door?page=${doorPage}&limit=${LOGS_PER_PAGE}`
-    fetch(url)
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => {
         const logs: LogEntry[] = data.logs.map((log: RawLog, i: number) => ({
@@ -94,12 +97,13 @@ export function DashboardLogs() {
         setDoorLogs(logs)
         setDoorTotal(data.total)
       })
-  }, [doorPage])
+  }, [doorPage, token])
 
   // Fetch Clothesline Logs
   useEffect(() => {
+    if (!token) return
     const url = `/api/logs/clothesline?page=${clotheslinePage}&limit=${LOGS_PER_PAGE}`
-    fetch(url)
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => {
         const logs: LogEntry[] = data.logs.map((log: RawLog, i: number) => ({
@@ -112,12 +116,13 @@ export function DashboardLogs() {
         setClotheslineLogs(logs)
         setClotheslineTotal(data.total)
       })
-  }, [clotheslinePage])
+  }, [clotheslinePage, token])
 
   // Fetch Light Logs
   useEffect(() => {
+    if (!token) return
     const url = `/api/logs/light?page=${lightPage}&limit=${LOGS_PER_PAGE}`
-    fetch(url)
+    fetch(url, { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => {
         const logs: LightLogEntry[] = data.logs.map((log: RawLog, i: number) => ({
@@ -130,14 +135,14 @@ export function DashboardLogs() {
         setLightLogs(logs)
         setLightTotal(data.total)
       })
-  }, [lightPage])
+  }, [lightPage, token])
 
   // Fetch Light Usage Chart Data
   useEffect(() => {
-    if (activeTab !== "lightUsage") return
+    if (activeTab !== "lightUsage" || !token) return
 
     setLoadingLightUsage(true)
-    fetch("/api/light-usage/hourly")
+    fetch("/api/light-usage/hourly", { headers: { Authorization: `Bearer ${token}` } })
       .then(res => res.json())
       .then(data => {
         const chartData: LightUsageEntry[] = data.data.map((item: RawLightUsage) => ({
@@ -149,7 +154,7 @@ export function DashboardLogs() {
         setLightUsageData(chartData)
       })
       .finally(() => setLoadingLightUsage(false))
-  }, [activeTab])
+  }, [activeTab, token])
 
   // Tab indicator animation logic
   useEffect(() => {

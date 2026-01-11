@@ -1,5 +1,7 @@
 from bson import ObjectId
 from fastapi import FastAPI, HTTPException, WebSocket, Query, Depends, Body
+from fastapi.security import OAuth2PasswordBearer
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from fastapi.responses import JSONResponse
 from datetime import datetime, timezone, timedelta
@@ -64,6 +66,47 @@ def to_jakarta_time(dt):
         dt = dt.replace(tzinfo=timezone.utc)
     return dt.astimezone(JAKARTA_TZ)
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/login")
+
+def get_current_user(token: str = Depends(oauth2_scheme)):
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+    except jwt.JWTError:
+        raise credentials_exception
+    
+    user = get_user_by_email(email)
+    if user is None:
+        raise credentials_exception
+    return user
+
+async def get_current_user_ws(token: str = Query(...)):
+    credentials_exception = HTTPException(
+        status_code=401,
+        detail="Could not validate credentials",
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email: str = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+    except jwt.JWTError:
+        raise credentials_exception
+    
+    user = get_user_by_email(email)
+    if user is None:
+        raise credentials_exception
+    return user
+
+
+
 def convert_mongo_types(obj, to_jakarta=False):
     if isinstance(obj, dict):
         return {k: convert_mongo_types(v, to_jakarta) for k, v in obj.items()}
@@ -102,8 +145,23 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+origins = [
+    "http://localhost",
+    "http://localhost:3000",
+    "https://homytech.my.id",
+    "https://www.homytech.my.id",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.websocket("/ws/light")
-async def websocket_light(websocket: WebSocket):
+async def websocket_light(websocket: WebSocket, user: dict = Depends(get_current_user_ws)):
     await connect_client_light(websocket)
     try:
         while True:
@@ -112,7 +170,7 @@ async def websocket_light(websocket: WebSocket):
         disconnect_client_light(websocket)
 
 @app.websocket("/ws/door")
-async def websocket_door(websocket: WebSocket):
+async def websocket_door(websocket: WebSocket, user: dict = Depends(get_current_user_ws)):
     await connect_client_door(websocket)
     try:
         while True:
@@ -121,7 +179,7 @@ async def websocket_door(websocket: WebSocket):
         disconnect_client_door(websocket)
 
 @app.websocket("/ws/clothesline")
-async def websocket_clothesline(websocket: WebSocket):
+async def websocket_clothesline(websocket: WebSocket, user: dict = Depends(get_current_user_ws)):
     await connect_client_clothesline(websocket)
     try:
         while True:
@@ -130,7 +188,7 @@ async def websocket_clothesline(websocket: WebSocket):
         disconnect_client_clothesline(websocket)
 
 @app.websocket("/ws/alert")
-async def websocket_alert(websocket: WebSocket):
+async def websocket_alert(websocket: WebSocket, user: dict = Depends(get_current_user_ws)):
     await connect_client_alert(websocket)
     try:
         while True:
@@ -146,7 +204,7 @@ class ModeControlRequest(BaseModel):
     mode: str
 
 @app.post("/api/light/{light_id}")
-async def control_light(light_id: int, req: DeviceControlRequest):
+async def control_light(light_id: int, req: DeviceControlRequest, current_user: dict = Depends(get_current_user)):
     action = req.action.lower()
     if action not in ["on", "off"]:
         raise HTTPException(status_code=400, detail="action harus on atau off")
@@ -168,7 +226,7 @@ async def control_light(light_id: int, req: DeviceControlRequest):
     return {"message": f"light {light_id} dikirim perintah {action}"}
 
 @app.post("/api/door/")
-async def control_door(req: DeviceControlRequest):
+async def control_door(req: DeviceControlRequest, current_user: dict = Depends(get_current_user)):
     action = req.action.lower()
     if action not in ["open", "close"]:
         raise HTTPException(status_code=400, detail="action harus open atau close")
@@ -190,7 +248,7 @@ async def control_door(req: DeviceControlRequest):
     return {"message": f"door dikirim perintah {action}"}
 
 @app.post("/api/clothesline/")
-async def control_clothesline(req: DeviceControlRequest):
+async def control_clothesline(req: DeviceControlRequest, current_user: dict = Depends(get_current_user)):
     action = req.action.lower()
     if action not in ["retract", "extend"]:
         raise HTTPException(status_code=400, detail="action harus retract atau extend")
@@ -212,7 +270,7 @@ async def control_clothesline(req: DeviceControlRequest):
     return {"message": f"clothesline dikirim perintah {action}"}
 
 @app.post("/api/clothesline/mode")
-async def control_clothesline_mode(req: ModeControlRequest):
+async def control_clothesline_mode(req: ModeControlRequest, current_user: dict = Depends(get_current_user)):
     mode = req.mode.lower()
     if mode not in ["manual", "auto"]:
         raise HTTPException(status_code=400, detail="mode harus manual atau auto")
@@ -227,7 +285,7 @@ async def control_clothesline_mode(req: ModeControlRequest):
 
 
 @app.post("/api/sync-state")
-async def sync_state():
+async def sync_state(current_user: dict = Depends(get_current_user)):
     try:
         # Fetch latest states
         light_state = get_latest_light_state()
@@ -252,7 +310,7 @@ async def sync_state():
         raise HTTPException(status_code=500, detail="Failed to sync state")
 
 @app.get("/api/latest-state/light")
-def get_light_state():
+def get_light_state(current_user: dict = Depends(get_current_user)):
     try:
         state = get_latest_light_state()
         if state is None:
@@ -264,7 +322,7 @@ def get_light_state():
         raise HTTPException(status_code=500, detail=f"Error: {e}")
 
 @app.get("/api/latest-state/door")
-def get_door_state():
+def get_door_state(current_user: dict = Depends(get_current_user)):
     try:
         state = get_latest_door_state()
         if state is None:
@@ -276,7 +334,7 @@ def get_door_state():
         raise HTTPException(status_code=500, detail=f"Error: {e}")
     
 @app.get("/api/latest-state/clothesline")
-def get_clothesline_state():
+def get_clothesline_state(current_user: dict = Depends(get_current_user)):
     try:
         state = get_latest_clothesline_state()
         if state is None:
@@ -296,6 +354,7 @@ def api_get_door_logs(
     source: Optional[str] = None,
     from_date: Optional[datetime] = None,
     to_date: Optional[datetime] = None,
+    current_user: dict = Depends(get_current_user)
 ):
     try:
         logs = get_door_logs(page, limit, user, action, source, from_date, to_date)
@@ -315,6 +374,7 @@ def api_get_light_logs(
     light_id: Optional[int] = None,
     from_date: Optional[datetime] = None,
     to_date: Optional[datetime] = None,
+    current_user: dict = Depends(get_current_user)
 ): 
     logger.info(f"API /api/logs/light called with params: page={page}, limit={limit}, user={user}, action={action}, light_id={light_id}, from_date={from_date}, to_date={to_date}")
     try:
@@ -335,6 +395,7 @@ def api_get_clothesline_logs(
     source: Optional[str] = None,
     from_date: Optional[datetime] = None,
     to_date: Optional[datetime] = None,
+    current_user: dict = Depends(get_current_user)
 ):
     try:
         logs = get_clothesline_logs(page, limit, user, action, source, from_date, to_date)
@@ -358,7 +419,7 @@ def login(req: LoginRequest = Body(...)):
 
 
 @app.get("/api/light-usage/hourly")
-def get_light_usage_hourly():
+def get_light_usage_hourly(current_user: dict = Depends(get_current_user)):
     """
     Mengembalikan total durasi ON (menit) per jam untuk setiap lampu pada 8 jam terakhir.
     """

@@ -53,7 +53,7 @@ export default function Dashboard() {
   const [deviceUpdates, setDeviceUpdates] = useState<DeviceUpdates | null>(null)
   const [currentTime, setCurrentTime] = useState(new Date())
   const [isMobile, setIsMobile] = useState(false)
-  const { name, email, logout, isInitialized } = useAuth()
+  const { name, email, logout, isInitialized, token } = useAuth()
   const router = useRouter()
 
   const sidebarRef = useRef<HTMLElement>(null)
@@ -154,10 +154,15 @@ export default function Dashboard() {
   useEffect(() => {
     const fetchInitialState = async () => {
       try {
+        const headers: HeadersInit = {}
+        if (token) {
+          headers["Authorization"] = `Bearer ${token}`
+        }
+
         const [lightRes, doorRes, clotheslineRes] = await Promise.all([
-          fetch("/api/latest-state/light"),
-          fetch("/api/latest-state/door"),
-          fetch("/api/latest-state/clothesline"),
+          fetch("/api/latest-state/light", { headers }),
+          fetch("/api/latest-state/door", { headers }),
+          fetch("/api/latest-state/clothesline", { headers }),
         ])
         if (!lightRes.ok || !doorRes.ok || !clotheslineRes.ok) {
           throw new Error("Failed to fetch one or more device states")
@@ -207,32 +212,40 @@ export default function Dashboard() {
         setDeviceUpdates(updates)
         setClotheslineMode(false)
 
-        await fetch("/api/sync-state", { method: "POST" })
+        setClotheslineMode(false)
+
+        const headersSync: HeadersInit = {}
+        if (token) {
+          headersSync["Authorization"] = `Bearer ${token}`
+        }
+        await fetch("/api/sync-state", { method: "POST", headers: headersSync })
       } catch (error) {
         console.error("Failed to fetch initial device state:", error)
       }
     }
 
     fetchInitialState()
-  }, [])
+  }, [token])
 
   // WebSocket for alerts
   useEffect(() => {
+    if (!token) return
     type AlertMessage = { user: string; action: "open" | "close"; timestamp: string }
 
     const cleanup = setupWebSocketWithReconnect<AlertMessage>(
-      `${window.location.origin.replace(/^http/, "ws")}/ws/alert`,
+      `${window.location.origin.replace(/^http/, "ws")}/ws/alert?token=${token}`,
       (data) => {
         alert(`Alert: Someone tried to ${data.action} the door!`)
       }
     )
     return cleanup
-  }, [])
+  }, [token])
 
   // WebSocket for light activity
   useEffect(() => {
+    if (!token) return
     const cleanup = setupWebSocketWithReconnect<LightStateEntry>(
-      `${window.location.origin.replace(/^http/, "ws")}/ws/light`,
+      `${window.location.origin.replace(/^http/, "ws")}/ws/light?token=${token}`,
       (data) => {
         const index = data.light_id - 1
         setLights((prev) => {
@@ -260,12 +273,13 @@ export default function Dashboard() {
       }
     )
     return cleanup
-  }, [])
+  }, [token])
 
   // WebSocket for door activity
   useEffect(() => {
+    if (!token) return
     const cleanup = setupWebSocketWithReconnect<DoorStateEntry>(
-      `${window.location.origin.replace(/^http/, "ws")}/ws/door`,
+      `${window.location.origin.replace(/^http/, "ws")}/ws/door?token=${token}`,
       (data) => {
         const isOpen = data.action === "open"
         setDoorOpen(isOpen)
@@ -281,12 +295,13 @@ export default function Dashboard() {
       }
     )
     return cleanup
-  }, [])
+  }, [token])
 
   // WebSocket for clothesline activity
   useEffect(() => {
+    if (!token) return
     const cleanup = setupWebSocketWithReconnect<ClotheslineStateEntry>(
-      `${window.location.origin.replace(/^http/, "ws")}/ws/clothesline`,
+      `${window.location.origin.replace(/^http/, "ws")}/ws/clothesline?token=${token}`,
       (data) => {
         const isExtended = data.action === "extend"
         setClotheslineExtended(isExtended)
@@ -302,7 +317,7 @@ export default function Dashboard() {
       }
     )
     return cleanup
-  }, [])
+  }, [token])
 
   const toggleSidebar = () => {
     if (!isSidebarOpen) {
@@ -323,7 +338,10 @@ export default function Dashboard() {
     const lightId = index + 1
     fetch(`/api/light/${lightId}`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
       body: JSON.stringify({ user: name, action }),
     })
       .then((res) => {
@@ -343,7 +361,10 @@ export default function Dashboard() {
     const action = newDoorState ? "open" : "close"
     fetch("/api/door/", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
       body: JSON.stringify({ user: name, action }),
     })
       .then((res) => {
@@ -363,7 +384,10 @@ export default function Dashboard() {
     const action = newState ? "extend" : "retract"
     fetch("/api/clothesline/", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
       body: JSON.stringify({ user: name, action }),
     })
       .then((res) => {
@@ -384,7 +408,10 @@ export default function Dashboard() {
     setClotheslineMode(newState)
     fetch("/api/clothesline/mode", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      },
       body: JSON.stringify({ mode })
     })
       .then((res) => {
